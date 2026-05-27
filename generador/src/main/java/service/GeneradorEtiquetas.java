@@ -119,9 +119,6 @@ public class GeneradorEtiquetas {
         String prenda = e.getTipoPrenda() != null ? e.getTipoPrenda().getEtiqueta().toUpperCase() : "";
         String linea3 = prenda + (noVacio(e.getTalla()) ? "  T:" + e.getTalla().toUpperCase() : "");
         parrafo(celda.addParagraph(), linea3, false, 9);
-
-        // Línea 4 — #NUMERO_TALLER
-        parrafo(celda.addParagraph(), "#" + e.getNumeroTaller(), false, 9);
     }
 
     private void vaciarCelda(XWPFTableCell celda) {
@@ -220,8 +217,6 @@ public class GeneradorEtiquetas {
         String prenda = e.getTipoPrenda() != null ? e.getTipoPrenda().getEtiqueta().toUpperCase() : "";
         String linea3 = prenda + (noVacio(e.getTalla()) ? "  T:" + e.getTalla().toUpperCase() : "");
         parrafo(celda.addParagraph(), linea3, false, 10);
-
-        parrafo(celda.addParagraph(), "#" + e.getNumeroTaller(), false, 10);
     }
 
     private void agregarTitulo(XWPFDocument doc, LoteEtiquetas lote) {

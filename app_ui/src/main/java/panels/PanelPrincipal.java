@@ -98,7 +98,7 @@ public class PanelPrincipal extends JPanel {
         JPanel p = new JPanel(new BorderLayout());
         p.setBorder(BorderFactory.createTitledBorder("Etiquetas del lote seleccionado"));
 
-        String[] cols = {"#Taller", "ID", "Nombre formateado", "Prenda", "Talla"};
+        String[] cols = {"ID", "Nombre formateado", "Prenda", "Talla"};
         modeloTabla = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -242,7 +242,6 @@ public class PanelPrincipal extends JPanel {
             lote.setEtiquetas(lista);
             for (Etiqueta e : lista) {
                 modeloTabla.addRow(new Object[]{
-                    "#" + e.getNumeroTaller(),
                     e.getIdEmpleado(),
                     e.getNombreFormateado(),
                     e.getTipoPrenda(),
@@ -261,8 +260,22 @@ public class PanelPrincipal extends JPanel {
         b.setBackground(bg);
         b.setForeground(fg);
         b.setOpaque(true);
+        b.setContentAreaFilled(false);
+        b.setOpaque(true);
         b.setFont(b.getFont().deriveFont(Font.BOLD, 12f));
+        Color hover = colorHover(bg);
+        b.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) { b.setBackground(hover); }
+            public void mouseExited(java.awt.event.MouseEvent e)  { b.setBackground(bg); }
+        });
         return b;
+    }
+
+    private Color colorHover(Color base) {
+        return new Color(
+            Math.min(255, base.getRed()   + 40),
+            Math.min(255, base.getGreen() + 40),
+            Math.min(255, base.getBlue()  + 40));
     }
 
     private void estado(String msg) { lblEstado.setText(msg); }

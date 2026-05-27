@@ -18,9 +18,6 @@ public class Etiqueta {
     private TipoPrenda tipoPrenda;
     private String talla;
 
-    // Número asignado por el taller de confección
-    private int numeroTaller;
-
     // ── Getters / Setters ─────────────────────────────────────────────────────
 
     public int getId() { return id; }
@@ -49,9 +46,6 @@ public class Etiqueta {
 
     public String getTalla() { return talla; }
     public void setTalla(String talla) { this.talla = talla; }
-
-    public int getNumeroTaller() { return numeroTaller; }
-    public void setNumeroTaller(int numeroTaller) { this.numeroTaller = numeroTaller; }
 
     // ── Utilidad ──────────────────────────────────────────────────────────────
 

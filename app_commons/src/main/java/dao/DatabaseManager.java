@@ -57,7 +57,6 @@ public class DatabaseManager {
                     segundo_apellido TEXT,
                     tipo_prenda      TEXT NOT NULL,
                     talla            TEXT,
-                    numero_taller    INTEGER DEFAULT 0,
                     FOREIGN KEY (lote_id) REFERENCES lotes(id) ON DELETE CASCADE
                 )
                 """);
@@ -67,20 +66,24 @@ public class DatabaseManager {
         }
     }
 
-    /** Si detecta el esquema anterior (columna nombre_empleado), elimina las tablas y las recrea. */
+    /** Descarta y recrea las tablas si detecta columnas del esquema anterior. */
     private void migrarSiEsNecesario(Connection conn, Statement stmt) throws SQLException {
         DatabaseMetaData meta = conn.getMetaData();
 
         try (ResultSet tablas = meta.getTables(null, null, "etiquetas", null)) {
-            if (!tablas.next()) return; // tabla no existe, nada que migrar
+            if (!tablas.next()) return;
         }
 
-        try (ResultSet cols = meta.getColumns(null, null, "etiquetas", "nombre_empleado")) {
-            if (cols.next()) {
-                // Esquema anterior detectado → descartar tablas y recrear
-                stmt.execute("DROP TABLE IF EXISTS etiquetas");
-                stmt.execute("DROP TABLE IF EXISTS lotes");
+        boolean esquemaViejo = false;
+        for (String col : new String[]{"nombre_empleado", "numero_taller"}) {
+            try (ResultSet cols = meta.getColumns(null, null, "etiquetas", col)) {
+                if (cols.next()) { esquemaViejo = true; break; }
             }
+        }
+
+        if (esquemaViejo) {
+            stmt.execute("DROP TABLE IF EXISTS etiquetas");
+            stmt.execute("DROP TABLE IF EXISTS lotes");
         }
     }
 }

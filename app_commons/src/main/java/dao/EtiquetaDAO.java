@@ -13,8 +13,8 @@ public class EtiquetaDAO {
         String sql = """
                 INSERT INTO etiquetas
                     (lote_id, id_empleado, primer_nombre, segundo_nombre,
-                     primer_apellido, segundo_apellido, tipo_prenda, talla, numero_taller)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     primer_apellido, segundo_apellido, tipo_prenda, talla)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = DatabaseManager.getInstance().getConnection();
@@ -29,7 +29,6 @@ public class EtiquetaDAO {
                 ps.setString(6, e.getSegundoApellido());
                 ps.setString(7, e.getTipoPrenda() != null ? e.getTipoPrenda().name() : null);
                 ps.setString(8, e.getTalla());
-                ps.setInt(9, e.getNumeroTaller());
                 ps.addBatch();
             }
 
@@ -44,7 +43,7 @@ public class EtiquetaDAO {
     }
 
     public List<Etiqueta> buscarPorLote(int loteId) throws SQLException {
-        String sql = "SELECT * FROM etiquetas WHERE lote_id = ? ORDER BY numero_taller, id";
+        String sql = "SELECT * FROM etiquetas WHERE lote_id = ? ORDER BY id";
         List<Etiqueta> lista = new ArrayList<>();
 
         try (Connection conn = DatabaseManager.getInstance().getConnection();
@@ -77,7 +76,6 @@ public class EtiquetaDAO {
         }
 
         e.setTalla(rs.getString("talla"));
-        e.setNumeroTaller(rs.getInt("numero_taller"));
         return e;
     }
 }

@@ -34,7 +34,6 @@ public class panelFormulario extends JDialog {
     private JTextField txtSegundoApellido;
     private JComboBox<TipoPrenda> cbTipoPrenda;
     private JComboBox<String>    cbTalla;
-    private JSpinner             spnNumeroTaller;
 
     // ── Lista temporal de etiquetas ────────────────────────────────────────────
     private final List<Etiqueta> etiquetasEnLote = new ArrayList<>();
@@ -106,10 +105,13 @@ public class panelFormulario extends JDialog {
         p.setBorder(BorderFactory.createTitledBorder("Datos de la Etiqueta"));
         GridBagConstraints g = gbc();
 
-        // Fila 0: ID empleado | Número de taller
-        fila(p, g, 0,
-            "ID Empleado:",     txtIdEmpleado = new JTextField(14),
-            "Nº Taller:",       spnNumeroTaller = new JSpinner(new SpinnerNumberModel(1, 1, 9999, 1)));
+        // Fila 0: ID empleado
+        g.gridy = 0; g.gridx = 0; g.weightx = 0; g.gridwidth = 1;
+        g.fill = GridBagConstraints.HORIZONTAL; g.anchor = GridBagConstraints.WEST;
+        p.add(lbl("ID Empleado:"), g);
+        g.gridx = 1; g.gridwidth = 3; g.weightx = 1;
+        txtIdEmpleado = new JTextField(14);
+        p.add(txtIdEmpleado, g);
 
         // Fila 1: Primer nombre | Segundo nombre (opcional)
         fila(p, g, 1,
@@ -154,10 +156,7 @@ public class panelFormulario extends JDialog {
         // Botón agregar
         g.gridx = 0; g.gridy = 5; g.gridwidth = 4; g.weightx = 1;
         g.fill = GridBagConstraints.NONE; g.anchor = GridBagConstraints.EAST;
-        JButton btnAgregar = new JButton("  + Agregar Etiqueta  ");
-        btnAgregar.setBackground(new Color(34, 139, 34));
-        btnAgregar.setForeground(Color.WHITE);
-        btnAgregar.setOpaque(true);
+        JButton btnAgregar = boton("  + Agregar Etiqueta  ", new Color(34, 139, 34), Color.WHITE);
         btnAgregar.addActionListener(this::agregarEtiqueta);
         p.add(btnAgregar, g);
 
@@ -169,16 +168,15 @@ public class panelFormulario extends JDialog {
         JPanel p = new JPanel(new BorderLayout(4, 4));
         p.setBorder(BorderFactory.createTitledBorder("Etiquetas en el lote"));
 
-        String[] cols = {"#Taller", "ID", "Nombre formateado", "Prenda", "Talla"};
+        String[] cols = {"ID", "Nombre formateado", "Prenda", "Talla"};
         modeloTabla = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         tabla = new JTable(modeloTabla);
         tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        tabla.getColumnModel().getColumn(0).setMaxWidth(60);
-        tabla.getColumnModel().getColumn(1).setMaxWidth(80);
-        tabla.getColumnModel().getColumn(3).setMaxWidth(160);
-        tabla.getColumnModel().getColumn(4).setMaxWidth(60);
+        tabla.getColumnModel().getColumn(0).setMaxWidth(80);
+        tabla.getColumnModel().getColumn(2).setMaxWidth(160);
+        tabla.getColumnModel().getColumn(3).setMaxWidth(60);
 
         JButton btnEliminar = new JButton("Eliminar seleccionada");
         btnEliminar.addActionListener(e -> {
@@ -204,10 +202,7 @@ public class panelFormulario extends JDialog {
         JButton btnCancelar = new JButton("Cancelar");
         btnCancelar.addActionListener(e -> dispose());
 
-        JButton btnGuardar = new JButton("  Guardar Lote  ");
-        btnGuardar.setBackground(new Color(0, 102, 204));
-        btnGuardar.setForeground(Color.WHITE);
-        btnGuardar.setOpaque(true);
+        JButton btnGuardar = boton("  Guardar Lote  ", new Color(0, 102, 204), Color.WHITE);
         btnGuardar.setFont(btnGuardar.getFont().deriveFont(Font.BOLD));
         btnGuardar.addActionListener(this::guardarLote);
 
@@ -228,19 +223,15 @@ public class panelFormulario extends JDialog {
         et.setSegundoApellido(txtSegundoApellido.getText().trim());
         et.setTipoPrenda((TipoPrenda) cbTipoPrenda.getSelectedItem());
         et.setTalla(cbTalla.getSelectedItem() != null ? cbTalla.getSelectedItem().toString().trim() : "");
-        et.setNumeroTaller((Integer) spnNumeroTaller.getValue());
 
         etiquetasEnLote.add(et);
         modeloTabla.addRow(new Object[]{
-            "#" + et.getNumeroTaller(),
             et.getIdEmpleado(),
             et.getNombreFormateado(),
             et.getTipoPrenda(),
             et.getTalla()
         });
 
-        // Auto-incrementar número de taller para la siguiente etiqueta
-        spnNumeroTaller.setValue((Integer) spnNumeroTaller.getValue() + 1);
         limpiarCamposEtiqueta();
         txtIdEmpleado.requestFocus();
     }
@@ -347,6 +338,28 @@ public class panelFormulario extends JDialog {
         g.fill = GridBagConstraints.HORIZONTAL;
         g.anchor = GridBagConstraints.WEST;
         return g;
+    }
+
+    private JButton boton(String texto, Color bg, Color fg) {
+        JButton b = new JButton(texto);
+        b.setBackground(bg);
+        b.setForeground(fg);
+        b.setOpaque(true);
+        b.setContentAreaFilled(false);
+        b.setOpaque(true);
+        Color hover = colorHover(bg);
+        b.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) { b.setBackground(hover); }
+            public void mouseExited(java.awt.event.MouseEvent e)  { b.setBackground(bg); }
+        });
+        return b;
+    }
+
+    private Color colorHover(Color base) {
+        return new Color(
+            Math.min(255, base.getRed()   + 40),
+            Math.min(255, base.getGreen() + 40),
+            Math.min(255, base.getBlue()  + 40));
     }
 
     private void alerta(String msg) {
