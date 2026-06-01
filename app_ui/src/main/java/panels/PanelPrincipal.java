@@ -1,13 +1,16 @@
 package panels;
 
+import componentes.BotonCustom;
 import dao.EtiquetaDAO;
 import dao.LoteDAO;
 import model.Etiqueta;
 import model.LoteEtiquetas;
 import service.GeneradorEtiquetas;
+import util.Estilo;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
@@ -59,16 +62,21 @@ public class PanelPrincipal extends JPanel {
         tb.setFloatable(false);
         tb.setBorder(new EmptyBorder(6, 6, 6, 6));
 
-        JButton btnNuevo = boton("+ Nuevo Lote", new Color(0, 102, 204), Color.WHITE);
+        BotonCustom btnNuevo = new BotonCustom("+ Nuevo Lote");
         btnNuevo.addActionListener(e -> abrirFormulario());
 
-        JButton btnGenerar = boton("Generar Word", new Color(30, 120, 30), Color.WHITE);
+        BotonCustom btnEditar = new BotonCustom("Editar Lote");
+        btnEditar.addActionListener(e -> editarLote());
+
+        BotonCustom btnGenerar = new BotonCustom("Generar Word");
         btnGenerar.addActionListener(e -> generarWord());
 
-        JButton btnEliminar = boton("Eliminar Lote", new Color(180, 30, 30), Color.WHITE);
+        BotonCustom btnEliminar = new BotonCustom("Eliminar Lote");
         btnEliminar.addActionListener(e -> eliminarLote());
 
         tb.add(btnNuevo);
+        tb.addSeparator(new Dimension(12, 0));
+        tb.add(btnEditar);
         tb.addSeparator(new Dimension(12, 0));
         tb.add(btnGenerar);
         tb.addSeparator(new Dimension(12, 0));
@@ -79,12 +87,11 @@ public class PanelPrincipal extends JPanel {
     // ── Panel izquierdo: lista de lotes ──────────────────────────────────────
     private JPanel crearPanelLista() {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBorder(BorderFactory.createTitledBorder("Lotes guardados"));
+        p.setBorder(new EmptyBorder(4, 4, 4, 4));
 
         modeloLista = new DefaultListModel<>();
         listaLotes = new JList<>(modeloLista);
         listaLotes.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        listaLotes.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         listaLotes.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) cargarDetalleLote();
         });
@@ -96,7 +103,7 @@ public class PanelPrincipal extends JPanel {
     // ── Panel derecho: detalle de etiquetas ──────────────────────────────────
     private JPanel crearPanelDetalle() {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBorder(BorderFactory.createTitledBorder("Etiquetas del lote seleccionado"));
+        p.setBorder(new EmptyBorder(4, 4, 4, 4));
 
         String[] cols = {"ID", "Nombre formateado", "Prenda", "Talla"};
         modeloTabla = new DefaultTableModel(cols, 0) {
@@ -105,9 +112,26 @@ public class PanelPrincipal extends JPanel {
         JTable tabla = new JTable(modeloTabla);
         tabla.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         tabla.getTableHeader().setReorderingAllowed(false);
+        tabla.getTableHeader().setDefaultRenderer(cabeceraRenderer());
 
         p.add(new JScrollPane(tabla), BorderLayout.CENTER);
         return p;
+    }
+
+    private DefaultTableCellRenderer cabeceraRenderer() {
+        return new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable t, Object v, boolean sel, boolean focus, int row, int col) {
+                super.getTableCellRendererComponent(t, v, sel, focus, row, col);
+                setBackground(Estilo.APP_COLOR);
+                setForeground(Color.WHITE);
+                setFont(getFont().deriveFont(Font.BOLD));
+                setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Estilo.BORDER_COLOR));
+                setHorizontalAlignment(CENTER);
+                return this;
+            }
+        };
     }
 
     // ── Acciones ─────────────────────────────────────────────────────────────
@@ -115,6 +139,28 @@ public class PanelPrincipal extends JPanel {
         panelFormulario form = new panelFormulario(parentFrame, lote -> {
             cargarLotes();
             estado("Lote guardado: \"" + lote.getNombre() + "\" (" + lote.getTotalEtiquetas() + " etiquetas)");
+        });
+        form.setVisible(true);
+    }
+
+    private void editarLote() {
+        LoteEtiquetas lote = listaLotes.getSelectedValue();
+        if (lote == null) {
+            alerta("Seleccione un lote para editar.");
+            return;
+        }
+        try {
+            if (lote.getEtiquetas().isEmpty()) {
+                lote.setEtiquetas(etiquetaDAO.buscarPorLote(lote.getId()));
+            }
+        } catch (SQLException ex) {
+            error("Error al cargar etiquetas: " + ex.getMessage());
+            return;
+        }
+
+        panelFormulario form = new panelFormulario(parentFrame, lote, loteActualizado -> {
+            cargarLotes();
+            estado("Lote actualizado: \"" + loteActualizado.getNombre() + "\" (" + loteActualizado.getTotalEtiquetas() + " etiquetas)");
         });
         form.setVisible(true);
     }
@@ -255,29 +301,6 @@ public class PanelPrincipal extends JPanel {
     }
 
     // ── Utilidades ────────────────────────────────────────────────────────────
-    private JButton boton(String texto, Color bg, Color fg) {
-        JButton b = new JButton(texto);
-        b.setBackground(bg);
-        b.setForeground(fg);
-        b.setOpaque(true);
-        b.setContentAreaFilled(false);
-        b.setOpaque(true);
-        b.setFont(b.getFont().deriveFont(Font.BOLD, 12f));
-        Color hover = colorHover(bg);
-        b.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent e) { b.setBackground(hover); }
-            public void mouseExited(java.awt.event.MouseEvent e)  { b.setBackground(bg); }
-        });
-        return b;
-    }
-
-    private Color colorHover(Color base) {
-        return new Color(
-            Math.min(255, base.getRed()   + 40),
-            Math.min(255, base.getGreen() + 40),
-            Math.min(255, base.getBlue()  + 40));
-    }
-
     private void estado(String msg) { lblEstado.setText(msg); }
     private void alerta(String msg) {
         JOptionPane.showMessageDialog(parentFrame, msg, "Atención", JOptionPane.WARNING_MESSAGE);

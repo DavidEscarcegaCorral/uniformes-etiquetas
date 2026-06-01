@@ -42,6 +42,14 @@ public class EtiquetaDAO {
         }
     }
 
+    public void eliminarPorLote(int loteId) throws SQLException {
+        try (Connection conn = DatabaseManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement("DELETE FROM etiquetas WHERE lote_id = ?")) {
+            ps.setInt(1, loteId);
+            ps.executeUpdate();
+        }
+    }
+
     public List<Etiqueta> buscarPorLote(int loteId) throws SQLException {
         String sql = "SELECT * FROM etiquetas WHERE lote_id = ? ORDER BY id";
         List<Etiqueta> lista = new ArrayList<>();

@@ -6,8 +6,11 @@ import model.TipoPrenda;
 import dao.LoteDAO;
 import dao.EtiquetaDAO;
 
+import util.Estilo;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -39,9 +42,14 @@ public class panelFormulario extends JDialog {
     private final List<Etiqueta> etiquetasEnLote = new ArrayList<>();
     private DefaultTableModel modeloTabla;
     private JTable tabla;
+    private int etiquetaEditandoIndice = -1;
+    private JButton btnAccionEtiqueta;
+    private JButton btnCancelarEdicion;
 
     private LoteEtiquetas loteGuardado;
     private final Consumer<LoteEtiquetas> onGuardado;
+    private final boolean modoEdicion;
+    private LoteEtiquetas loteEditando;
 
     private static final String[] TALLAS = {
         "XS", "S", "M", "L", "XL", "XXL", "XXXL",
@@ -51,7 +59,17 @@ public class panelFormulario extends JDialog {
     public panelFormulario(JFrame parent, Consumer<LoteEtiquetas> onGuardado) {
         super(parent, "Nuevo Lote de Etiquetas", true);
         this.onGuardado = onGuardado;
+        this.modoEdicion = false;
         construirUI();
+    }
+
+    public panelFormulario(JFrame parent, LoteEtiquetas loteExistente, Consumer<LoteEtiquetas> onGuardado) {
+        super(parent, "Editar Lote de Etiquetas", true);
+        this.onGuardado = onGuardado;
+        this.modoEdicion = true;
+        this.loteEditando = loteExistente;
+        construirUI();
+        precargarDatos();
     }
 
     private void construirUI() {
@@ -75,7 +93,7 @@ public class panelFormulario extends JDialog {
     // ── Información del lote ──────────────────────────────────────────────────
     private JPanel panelInfoLote() {
         JPanel p = new JPanel(new GridBagLayout());
-        p.setBorder(BorderFactory.createTitledBorder("Información del Lote"));
+        p.setBorder(new EmptyBorder(6, 6, 6, 6));
         GridBagConstraints g = gbc();
 
         g.gridx = 0; g.gridy = 0;
@@ -102,7 +120,7 @@ public class panelFormulario extends JDialog {
     // ── Formulario de una etiqueta ────────────────────────────────────────────
     private JPanel panelFormEtiqueta() {
         JPanel p = new JPanel(new GridBagLayout());
-        p.setBorder(BorderFactory.createTitledBorder("Datos de la Etiqueta"));
+        p.setBorder(new EmptyBorder(6, 6, 6, 6));
         GridBagConstraints g = gbc();
 
         // Fila 0: ID empleado
@@ -153,12 +171,22 @@ public class panelFormulario extends JDialog {
             });
         }
 
-        // Botón agregar
+        // Botones de acción (agregar / actualizar)
         g.gridx = 0; g.gridy = 5; g.gridwidth = 4; g.weightx = 1;
         g.fill = GridBagConstraints.NONE; g.anchor = GridBagConstraints.EAST;
-        JButton btnAgregar = boton("  + Agregar Etiqueta  ", new Color(34, 139, 34), Color.WHITE);
-        btnAgregar.addActionListener(this::agregarEtiqueta);
-        p.add(btnAgregar, g);
+        JPanel panelBotonesEt = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        panelBotonesEt.setOpaque(false);
+
+        btnCancelarEdicion = new JButton("Cancelar edición");
+        btnCancelarEdicion.setVisible(false);
+        btnCancelarEdicion.addActionListener(e -> cancelarEdicion());
+
+        btnAccionEtiqueta = botonDinamico("  + Agregar Etiqueta  ", new Color(34, 139, 34), Color.WHITE);
+        btnAccionEtiqueta.addActionListener(this::accionEtiqueta);
+
+        panelBotonesEt.add(btnCancelarEdicion);
+        panelBotonesEt.add(btnAccionEtiqueta);
+        p.add(panelBotonesEt, g);
 
         return p;
     }
@@ -166,7 +194,7 @@ public class panelFormulario extends JDialog {
     // ── Tabla de etiquetas del lote ───────────────────────────────────────────
     private JPanel panelTablaEtiquetas() {
         JPanel p = new JPanel(new BorderLayout(4, 4));
-        p.setBorder(BorderFactory.createTitledBorder("Etiquetas en el lote"));
+        p.setBorder(new EmptyBorder(6, 6, 6, 6));
 
         String[] cols = {"ID", "Nombre formateado", "Prenda", "Talla"};
         modeloTabla = new DefaultTableModel(cols, 0) {
@@ -174,21 +202,42 @@ public class panelFormulario extends JDialog {
         };
         tabla = new JTable(modeloTabla);
         tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tabla.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable t, Object v, boolean sel, boolean focus, int row, int col) {
+                super.getTableCellRendererComponent(t, v, sel, focus, row, col);
+                setBackground(Estilo.APP_COLOR);
+                setForeground(Color.WHITE);
+                setFont(getFont().deriveFont(Font.BOLD));
+                setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Estilo.BORDER_COLOR));
+                setHorizontalAlignment(CENTER);
+                return this;
+            }
+        });
         tabla.getColumnModel().getColumn(0).setMaxWidth(80);
         tabla.getColumnModel().getColumn(2).setMaxWidth(160);
         tabla.getColumnModel().getColumn(3).setMaxWidth(60);
 
+        JButton btnEditarFila = new JButton("Editar seleccionada");
+        btnEditarFila.addActionListener(e -> {
+            int fila = tabla.getSelectedRow();
+            if (fila >= 0) iniciarEdicionEtiqueta(fila);
+        });
+
         JButton btnEliminar = new JButton("Eliminar seleccionada");
         btnEliminar.addActionListener(e -> {
             int fila = tabla.getSelectedRow();
-            if (fila >= 0) {
-                etiquetasEnLote.remove(fila);
-                modeloTabla.removeRow(fila);
-            }
+            if (fila < 0) return;
+            if (etiquetaEditandoIndice == fila) cancelarEdicion();
+            else if (etiquetaEditandoIndice > fila) etiquetaEditandoIndice--;
+            etiquetasEnLote.remove(fila);
+            modeloTabla.removeRow(fila);
         });
 
         p.add(new JScrollPane(tabla), BorderLayout.CENTER);
         JPanel bot = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 2));
+        bot.add(btnEditarFila);
         bot.add(btnEliminar);
         p.add(bot, BorderLayout.SOUTH);
         return p;
@@ -209,6 +258,78 @@ public class panelFormulario extends JDialog {
         p.add(btnCancelar);
         p.add(btnGuardar);
         return p;
+    }
+
+    // ── Precarga (modo edición) ───────────────────────────────────────────────
+    private void precargarDatos() {
+        txtNombreLote.setText(loteEditando.getNombre());
+        txtEmpresa.setText(loteEditando.getEmpresa());
+        txtDescripcion.setText(loteEditando.getDescripcion() != null ? loteEditando.getDescripcion() : "");
+
+        etiquetasEnLote.clear();
+        etiquetasEnLote.addAll(loteEditando.getEtiquetas());
+        modeloTabla.setRowCount(0);
+        for (Etiqueta et : loteEditando.getEtiquetas()) {
+            modeloTabla.addRow(new Object[]{
+                et.getIdEmpleado(),
+                et.getNombreFormateado(),
+                et.getTipoPrenda(),
+                et.getTalla()
+            });
+        }
+    }
+
+    // ── Edición inline de etiqueta ────────────────────────────────────────────
+    private void iniciarEdicionEtiqueta(int fila) {
+        etiquetaEditandoIndice = fila;
+        Etiqueta et = etiquetasEnLote.get(fila);
+        txtIdEmpleado.setText(et.getIdEmpleado() != null ? et.getIdEmpleado() : "");
+        txtPrimerNombre.setText(et.getPrimerNombre() != null ? et.getPrimerNombre() : "");
+        txtSegundoNombre.setText(et.getSegundoNombre() != null ? et.getSegundoNombre() : "");
+        txtPrimerApellido.setText(et.getPrimerApellido() != null ? et.getPrimerApellido() : "");
+        txtSegundoApellido.setText(et.getSegundoApellido() != null ? et.getSegundoApellido() : "");
+        if (et.getTipoPrenda() != null) cbTipoPrenda.setSelectedItem(et.getTipoPrenda());
+        if (et.getTalla() != null) cbTalla.setSelectedItem(et.getTalla());
+        setBotonModo(btnAccionEtiqueta, "  Actualizar  ", new Color(180, 100, 0));
+        btnCancelarEdicion.setVisible(true);
+        tabla.setRowSelectionInterval(fila, fila);
+        txtPrimerNombre.requestFocus();
+    }
+
+    private void cancelarEdicion() {
+        etiquetaEditandoIndice = -1;
+        limpiarCamposEtiqueta();
+        setBotonModo(btnAccionEtiqueta, "  + Agregar Etiqueta  ", new Color(34, 139, 34));
+        btnCancelarEdicion.setVisible(false);
+        tabla.clearSelection();
+    }
+
+    private void accionEtiqueta(ActionEvent e) {
+        if (etiquetaEditandoIndice >= 0) actualizarEtiqueta();
+        else agregarEtiqueta(e);
+    }
+
+    private void actualizarEtiqueta() {
+        if (!validarCamposEtiqueta()) return;
+        Etiqueta et = etiquetasEnLote.get(etiquetaEditandoIndice);
+        et.setIdEmpleado(txtIdEmpleado.getText().trim());
+        et.setPrimerNombre(txtPrimerNombre.getText().trim());
+        et.setSegundoNombre(txtSegundoNombre.getText().trim());
+        et.setPrimerApellido(txtPrimerApellido.getText().trim());
+        et.setSegundoApellido(txtSegundoApellido.getText().trim());
+        et.setTipoPrenda((TipoPrenda) cbTipoPrenda.getSelectedItem());
+        et.setTalla(cbTalla.getSelectedItem() != null ? cbTalla.getSelectedItem().toString().trim() : "");
+        modeloTabla.setValueAt(et.getIdEmpleado(),        etiquetaEditandoIndice, 0);
+        modeloTabla.setValueAt(et.getNombreFormateado(),  etiquetaEditandoIndice, 1);
+        modeloTabla.setValueAt(et.getTipoPrenda(),        etiquetaEditandoIndice, 2);
+        modeloTabla.setValueAt(et.getTalla(),             etiquetaEditandoIndice, 3);
+        cancelarEdicion();
+    }
+
+    private void setBotonModo(JButton btn, String texto, Color bg) {
+        btn.putClientProperty("baseColor", bg);
+        btn.setText(texto);
+        btn.setBackground(bg);
     }
 
     // ── Lógica ────────────────────────────────────────────────────────────────
@@ -253,19 +374,35 @@ public class panelFormulario extends JDialog {
             return;
         }
 
-        LoteEtiquetas lote = new LoteEtiquetas();
-        lote.setNombre(nombre);
-        lote.setEmpresa(txtEmpresa.getText().trim());
-        lote.setDescripcion(txtDescripcion.getText().trim());
-        lote.setEtiquetas(new ArrayList<>(etiquetasEnLote));
-
         try {
-            new LoteDAO().guardar(lote);
-            lote.getEtiquetas().forEach(et -> et.setLoteId(lote.getId()));
-            new EtiquetaDAO().guardarTodas(lote.getEtiquetas());
+            if (modoEdicion) {
+                loteEditando.setNombre(nombre);
+                loteEditando.setEmpresa(txtEmpresa.getText().trim());
+                loteEditando.setDescripcion(txtDescripcion.getText().trim());
+                loteEditando.setEtiquetas(new ArrayList<>(etiquetasEnLote));
 
-            loteGuardado = lote;
-            if (onGuardado != null) onGuardado.accept(lote);
+                EtiquetaDAO etiquetaDAO = new EtiquetaDAO();
+                new LoteDAO().actualizar(loteEditando);
+                etiquetaDAO.eliminarPorLote(loteEditando.getId());
+                loteEditando.getEtiquetas().forEach(et -> et.setLoteId(loteEditando.getId()));
+                etiquetaDAO.guardarTodas(loteEditando.getEtiquetas());
+
+                loteGuardado = loteEditando;
+            } else {
+                LoteEtiquetas lote = new LoteEtiquetas();
+                lote.setNombre(nombre);
+                lote.setEmpresa(txtEmpresa.getText().trim());
+                lote.setDescripcion(txtDescripcion.getText().trim());
+                lote.setEtiquetas(new ArrayList<>(etiquetasEnLote));
+
+                new LoteDAO().guardar(lote);
+                lote.getEtiquetas().forEach(et -> et.setLoteId(lote.getId()));
+                new EtiquetaDAO().guardarTodas(lote.getEtiquetas());
+
+                loteGuardado = lote;
+            }
+
+            if (onGuardado != null) onGuardado.accept(loteGuardado);
             dispose();
 
         } catch (SQLException ex) {
@@ -338,6 +475,26 @@ public class panelFormulario extends JDialog {
         g.fill = GridBagConstraints.HORIZONTAL;
         g.anchor = GridBagConstraints.WEST;
         return g;
+    }
+
+    private JButton botonDinamico(String texto, Color bg, Color fg) {
+        JButton b = new JButton(texto);
+        b.setBackground(bg);
+        b.setForeground(fg);
+        b.setOpaque(true);
+        b.setContentAreaFilled(false);
+        b.setOpaque(true);
+        b.putClientProperty("baseColor", bg);
+        b.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                Color base = (Color) b.getClientProperty("baseColor");
+                b.setBackground(colorHover(base));
+            }
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                b.setBackground((Color) b.getClientProperty("baseColor"));
+            }
+        });
+        return b;
     }
 
     private JButton boton(String texto, Color bg, Color fg) {

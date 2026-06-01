@@ -43,6 +43,18 @@ public class LoteDAO {
         return lista;
     }
 
+    public void actualizar(LoteEtiquetas lote) throws SQLException {
+        String sql = "UPDATE lotes SET nombre=?, empresa=?, descripcion=? WHERE id=?";
+        try (Connection conn = DatabaseManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, lote.getNombre());
+            ps.setString(2, lote.getEmpresa());
+            ps.setString(3, lote.getDescripcion());
+            ps.setInt(4, lote.getId());
+            ps.executeUpdate();
+        }
+    }
+
     public void eliminar(int id) throws SQLException {
         try (Connection conn = DatabaseManager.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement("DELETE FROM lotes WHERE id = ?")) {
