@@ -6,6 +6,9 @@ import model.TipoPrenda;
 import dao.LoteDAO;
 import dao.EtiquetaDAO;
 
+import componentes.BotonCustom;
+import componentes.ComboBoxCustom;
+import componentes.TextFieldCustom;
 import util.Estilo;
 
 import javax.swing.*;
@@ -27,7 +30,6 @@ public class panelFormulario extends JDialog {
     // ── Campos del lote ────────────────────────────────────────────────────────
     private JTextField txtNombreLote;
     private JTextField txtEmpresa;
-    private JTextField txtDescripcion;
 
     // ── Campos de la etiqueta ──────────────────────────────────────────────────
     private JTextField txtIdEmpleado;
@@ -35,8 +37,8 @@ public class panelFormulario extends JDialog {
     private JTextField txtSegundoNombre;
     private JTextField txtPrimerApellido;
     private JTextField txtSegundoApellido;
-    private JComboBox<TipoPrenda> cbTipoPrenda;
-    private JComboBox<String>    cbTalla;
+    private ComboBoxCustom<TipoPrenda> cbTipoPrenda;
+    private ComboBoxCustom<String>    cbTalla;
 
     // ── Lista temporal de etiquetas ────────────────────────────────────────────
     private final List<Etiqueta> etiquetasEnLote = new ArrayList<>();
@@ -73,97 +75,93 @@ public class panelFormulario extends JDialog {
     }
 
     private void construirUI() {
-        setSize(800, 680);
+        setSize(820, 700);
         setMinimumSize(new Dimension(720, 580));
         setLocationRelativeTo(getOwner());
-        setLayout(new BorderLayout(6, 6));
-        ((JPanel) getContentPane()).setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        add(panelInfoLote(),      BorderLayout.NORTH);
+        JPanel contenido = new JPanel();
+        contenido.setLayout(new BoxLayout(contenido, BoxLayout.Y_AXIS));
+        contenido.setBackground(Estilo.APP_COLOR);
+        contenido.setBorder(new EmptyBorder(12, 14, 12, 14));
 
-        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                panelFormEtiqueta(), panelTablaEtiquetas());
-        split.setDividerLocation(250);
-        split.setResizeWeight(0.4);
-        add(split, BorderLayout.CENTER);
+        contenido.add(seccionInfoLote());
+        contenido.add(Box.createVerticalStrut(10));
+        contenido.add(seccionFormEtiqueta());
+        contenido.add(Box.createVerticalStrut(10));
+        contenido.add(seccionTablaEtiquetas());
+        contenido.add(Box.createVerticalStrut(8));
+        contenido.add(seccionBotonesPrincipales());
 
-        add(panelBotones(), BorderLayout.SOUTH);
+        setContentPane(contenido);
     }
 
-    // ── Información del lote ──────────────────────────────────────────────────
-    private JPanel panelInfoLote() {
-        JPanel p = new JPanel(new GridBagLayout());
-        p.setBorder(new EmptyBorder(6, 6, 6, 6));
-        GridBagConstraints g = gbc();
+    // ── Sección: info del lote ────────────────────────────────────────────────
+    private JPanel seccionInfoLote() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setOpaque(false);
+        p.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        g.gridx = 0; g.gridy = 0;
-        p.add(lbl("Nombre del lote *:"), g);
-        g.gridx = 1; g.weightx = 1;
-        txtNombreLote = new JTextField(20);
-        p.add(txtNombreLote, g);
-
-        g.gridx = 2; g.weightx = 0;
-        p.add(lbl("Empresa / Cliente *:"), g);
-        g.gridx = 3; g.weightx = 1;
-        txtEmpresa = new JTextField(16);
-        p.add(txtEmpresa, g);
-
-        g.gridx = 0; g.gridy = 1; g.weightx = 0;
-        p.add(lbl("Descripción:"), g);
-        g.gridx = 1; g.gridwidth = 3; g.weightx = 1;
-        txtDescripcion = new JTextField();
-        p.add(txtDescripcion, g);
+        JPanel fila1 = fila(
+            lbl("Nombre del lote *:"), txtNombreLote = new TextFieldCustom(18),
+            lbl("Empresa / Cliente *:"), txtEmpresa  = new TextFieldCustom(14));
+        p.add(fila1);
 
         return p;
     }
 
-    // ── Formulario de una etiqueta ────────────────────────────────────────────
-    private JPanel panelFormEtiqueta() {
-        JPanel p = new JPanel(new GridBagLayout());
-        p.setBorder(new EmptyBorder(6, 6, 6, 6));
-        GridBagConstraints g = gbc();
+    // ── Sección: datos de una etiqueta ────────────────────────────────────────
+    private JPanel seccionFormEtiqueta() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setOpaque(false);
+        p.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Fila 0: ID empleado
-        g.gridy = 0; g.gridx = 0; g.weightx = 0; g.gridwidth = 1;
-        g.fill = GridBagConstraints.HORIZONTAL; g.anchor = GridBagConstraints.WEST;
-        p.add(lbl("ID Empleado:"), g);
-        g.gridx = 1; g.gridwidth = 3; g.weightx = 1;
-        txtIdEmpleado = new JTextField(14);
-        p.add(txtIdEmpleado, g);
+        // ID (campo pequeño, sin fill completo)
+        JPanel filaId = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        filaId.setOpaque(false);
+        filaId.setAlignmentX(Component.LEFT_ALIGNMENT);
+        txtIdEmpleado = new TextFieldCustom(8);
+        filaId.add(lbl("ID Empleado:"));
+        filaId.add(txtIdEmpleado);
+        p.add(filaId);
+        p.add(Box.createVerticalStrut(8));
 
-        // Fila 1: Primer nombre | Segundo nombre (opcional)
-        fila(p, g, 1,
-            "Primer nombre *:", txtPrimerNombre  = new JTextField(16),
-            "Segundo nombre:",  txtSegundoNombre = new JTextField(12));
+        // Nombres
+        p.add(fila(
+            lbl("Primer nombre *:"), txtPrimerNombre  = new TextFieldCustom(14),
+            lbl("Segundo nombre:"),  txtSegundoNombre = new TextFieldCustom(10)));
+        p.add(Box.createVerticalStrut(8));
 
-        // Fila 2: Primer apellido | Segundo apellido (opcional)
-        fila(p, g, 2,
-            "Primer apellido *:", txtPrimerApellido  = new JTextField(16),
-            "Segundo apellido:",  txtSegundoApellido = new JTextField(12));
+        // Apellidos
+        p.add(fila(
+            lbl("Primer apellido *:"), txtPrimerApellido  = new TextFieldCustom(14),
+            lbl("Segundo apellido:"),  txtSegundoApellido = new TextFieldCustom(10)));
+        p.add(Box.createVerticalStrut(8));
 
-        // Fila 3: Tipo de prenda | Talla
-        cbTipoPrenda = new JComboBox<>(TipoPrenda.values());
-        cbTalla      = new JComboBox<>(TALLAS);
+        // Prenda + Talla
+        cbTipoPrenda = new ComboBoxCustom<>(TipoPrenda.values());
+        cbTalla      = new ComboBoxCustom<>(TALLAS);
         cbTalla.setEditable(true);
-        fila(p, g, 3,
-            "Tipo de prenda *:", cbTipoPrenda,
-            "Talla:",            cbTalla);
+        p.add(fila(lbl("Tipo de prenda *:"), cbTipoPrenda,
+                   lbl("Talla:"), cbTalla));
+        p.add(Box.createVerticalStrut(8));
 
-        // Vista previa del nombre formateado
-        g.gridx = 0; g.gridy = 4; g.weightx = 0; g.gridwidth = 1;
-        p.add(lbl("Vista previa:"), g);
-        g.gridx = 1; g.gridwidth = 3; g.weightx = 1;
+        // Preview
         JLabel lblPreview = new JLabel("—");
         lblPreview.setFont(lblPreview.getFont().deriveFont(Font.ITALIC));
-        lblPreview.setForeground(new Color(60, 60, 200));
-        p.add(lblPreview, g);
+        lblPreview.setForeground(new Color(130, 170, 255));
+        JPanel filaPreview = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        filaPreview.setOpaque(false);
+        filaPreview.setAlignmentX(Component.LEFT_ALIGNMENT);
+        filaPreview.add(lbl("Vista previa:"));
+        filaPreview.add(lblPreview);
+        p.add(filaPreview);
 
-        // Actualizar preview en tiempo real
-        var actualizar = new Runnable() {
-            @Override public void run() { lblPreview.setText(construirPreview()); }
-        };
-        for (JTextField tf : new JTextField[]{txtIdEmpleado, txtPrimerNombre, txtSegundoNombre,
-                                              txtPrimerApellido, txtSegundoApellido}) {
+        // Listener preview en tiempo real
+        Runnable actualizar = () -> lblPreview.setText(construirPreview());
+        for (JTextField tf : new JTextField[]{txtIdEmpleado, txtPrimerNombre,
+                txtSegundoNombre, txtPrimerApellido, txtSegundoApellido}) {
             tf.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
                 public void insertUpdate(javax.swing.event.DocumentEvent e)  { actualizar.run(); }
                 public void removeUpdate(javax.swing.event.DocumentEvent e)  { actualizar.run(); }
@@ -171,36 +169,39 @@ public class panelFormulario extends JDialog {
             });
         }
 
-        // Botones de acción (agregar / actualizar)
-        g.gridx = 0; g.gridy = 5; g.gridwidth = 4; g.weightx = 1;
-        g.fill = GridBagConstraints.NONE; g.anchor = GridBagConstraints.EAST;
-        JPanel panelBotonesEt = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-        panelBotonesEt.setOpaque(false);
+        p.add(Box.createVerticalStrut(8));
 
-        btnCancelarEdicion = new JButton("Cancelar edición");
+        // Botones agregar/actualizar
+        JPanel panelBotonesEt = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        panelBotonesEt.setOpaque(false);
+        panelBotonesEt.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        btnCancelarEdicion = new BotonCustom("Cancelar edición");
         btnCancelarEdicion.setVisible(false);
         btnCancelarEdicion.addActionListener(e -> cancelarEdicion());
 
-        btnAccionEtiqueta = botonDinamico("  + Agregar Etiqueta  ", new Color(34, 139, 34), Color.WHITE);
+        btnAccionEtiqueta = new BotonCustom("+ Agregar Etiqueta");
         btnAccionEtiqueta.addActionListener(this::accionEtiqueta);
 
         panelBotonesEt.add(btnCancelarEdicion);
         panelBotonesEt.add(btnAccionEtiqueta);
-        p.add(panelBotonesEt, g);
+        p.add(panelBotonesEt);
 
         return p;
     }
 
-    // ── Tabla de etiquetas del lote ───────────────────────────────────────────
-    private JPanel panelTablaEtiquetas() {
-        JPanel p = new JPanel(new BorderLayout(4, 4));
-        p.setBorder(new EmptyBorder(6, 6, 6, 6));
+    // ── Sección: tabla de etiquetas ───────────────────────────────────────────
+    private JPanel seccionTablaEtiquetas() {
+        JPanel p = new JPanel(new BorderLayout(0, 6));
+        p.setOpaque(false);
+        p.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         String[] cols = {"ID", "Nombre formateado", "Prenda", "Talla"};
         modeloTabla = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         tabla = new JTable(modeloTabla);
+        tabla.setRowHeight(28);
         tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tabla.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
             @Override
@@ -210,8 +211,10 @@ public class panelFormulario extends JDialog {
                 setBackground(Estilo.APP_COLOR);
                 setForeground(Color.WHITE);
                 setFont(getFont().deriveFont(Font.BOLD));
-                setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Estilo.BORDER_COLOR));
-                setHorizontalAlignment(CENTER);
+                setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, 1, 0, Estilo.BORDER_COLOR),
+                    new EmptyBorder(6, 10, 6, 10)));
+                setHorizontalAlignment(LEFT);
                 return this;
             }
         });
@@ -219,13 +222,18 @@ public class panelFormulario extends JDialog {
         tabla.getColumnModel().getColumn(2).setMaxWidth(160);
         tabla.getColumnModel().getColumn(3).setMaxWidth(60);
 
-        JButton btnEditarFila = new JButton("Editar seleccionada");
+        p.add(new JScrollPane(tabla), BorderLayout.CENTER);
+
+        JPanel botTabla = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        botTabla.setOpaque(false);
+
+        BotonCustom btnEditarFila = new BotonCustom("Editar seleccionada");
         btnEditarFila.addActionListener(e -> {
             int fila = tabla.getSelectedRow();
             if (fila >= 0) iniciarEdicionEtiqueta(fila);
         });
 
-        JButton btnEliminar = new JButton("Eliminar seleccionada");
+        BotonCustom btnEliminar = new BotonCustom("Eliminar seleccionada");
         btnEliminar.addActionListener(e -> {
             int fila = tabla.getSelectedRow();
             if (fila < 0) return;
@@ -235,24 +243,22 @@ public class panelFormulario extends JDialog {
             modeloTabla.removeRow(fila);
         });
 
-        p.add(new JScrollPane(tabla), BorderLayout.CENTER);
-        JPanel bot = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 2));
-        bot.add(btnEditarFila);
-        bot.add(btnEliminar);
-        p.add(bot, BorderLayout.SOUTH);
+        botTabla.add(btnEditarFila);
+        botTabla.add(btnEliminar);
+        p.add(botTabla, BorderLayout.SOUTH);
         return p;
     }
 
-    // ── Botones principales ───────────────────────────────────────────────────
-    private JPanel panelBotones() {
+    // ── Sección: botones Cancelar / Guardar ───────────────────────────────────
+    private JPanel seccionBotonesPrincipales() {
         JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        p.setBorder(new EmptyBorder(6, 0, 0, 0));
+        p.setOpaque(false);
+        p.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JButton btnCancelar = new JButton("Cancelar");
+        BotonCustom btnCancelar = new BotonCustom("Cancelar");
         btnCancelar.addActionListener(e -> dispose());
 
-        JButton btnGuardar = boton("  Guardar Lote  ", new Color(0, 102, 204), Color.WHITE);
-        btnGuardar.setFont(btnGuardar.getFont().deriveFont(Font.BOLD));
+        BotonCustom btnGuardar = new BotonCustom("Guardar Lote");
         btnGuardar.addActionListener(this::guardarLote);
 
         p.add(btnCancelar);
@@ -264,7 +270,6 @@ public class panelFormulario extends JDialog {
     private void precargarDatos() {
         txtNombreLote.setText(loteEditando.getNombre());
         txtEmpresa.setText(loteEditando.getEmpresa());
-        txtDescripcion.setText(loteEditando.getDescripcion() != null ? loteEditando.getDescripcion() : "");
 
         etiquetasEnLote.clear();
         etiquetasEnLote.addAll(loteEditando.getEtiquetas());
@@ -290,7 +295,7 @@ public class panelFormulario extends JDialog {
         txtSegundoApellido.setText(et.getSegundoApellido() != null ? et.getSegundoApellido() : "");
         if (et.getTipoPrenda() != null) cbTipoPrenda.setSelectedItem(et.getTipoPrenda());
         if (et.getTalla() != null) cbTalla.setSelectedItem(et.getTalla());
-        setBotonModo(btnAccionEtiqueta, "  Actualizar  ", new Color(180, 100, 0));
+        btnAccionEtiqueta.setText("Actualizar");
         btnCancelarEdicion.setVisible(true);
         tabla.setRowSelectionInterval(fila, fila);
         txtPrimerNombre.requestFocus();
@@ -299,7 +304,7 @@ public class panelFormulario extends JDialog {
     private void cancelarEdicion() {
         etiquetaEditandoIndice = -1;
         limpiarCamposEtiqueta();
-        setBotonModo(btnAccionEtiqueta, "  + Agregar Etiqueta  ", new Color(34, 139, 34));
+        btnAccionEtiqueta.setText("+ Agregar Etiqueta");
         btnCancelarEdicion.setVisible(false);
         tabla.clearSelection();
     }
@@ -324,12 +329,6 @@ public class panelFormulario extends JDialog {
         modeloTabla.setValueAt(et.getTipoPrenda(),        etiquetaEditandoIndice, 2);
         modeloTabla.setValueAt(et.getTalla(),             etiquetaEditandoIndice, 3);
         cancelarEdicion();
-    }
-
-    private void setBotonModo(JButton btn, String texto, Color bg) {
-        btn.putClientProperty("baseColor", bg);
-        btn.setText(texto);
-        btn.setBackground(bg);
     }
 
     // ── Lógica ────────────────────────────────────────────────────────────────
@@ -378,7 +377,6 @@ public class panelFormulario extends JDialog {
             if (modoEdicion) {
                 loteEditando.setNombre(nombre);
                 loteEditando.setEmpresa(txtEmpresa.getText().trim());
-                loteEditando.setDescripcion(txtDescripcion.getText().trim());
                 loteEditando.setEtiquetas(new ArrayList<>(etiquetasEnLote));
 
                 EtiquetaDAO etiquetaDAO = new EtiquetaDAO();
@@ -392,7 +390,6 @@ public class panelFormulario extends JDialog {
                 LoteEtiquetas lote = new LoteEtiquetas();
                 lote.setNombre(nombre);
                 lote.setEmpresa(txtEmpresa.getText().trim());
-                lote.setDescripcion(txtDescripcion.getText().trim());
                 lote.setEtiquetas(new ArrayList<>(etiquetasEnLote));
 
                 new LoteDAO().guardar(lote);
@@ -453,70 +450,20 @@ public class panelFormulario extends JDialog {
     }
 
     // ── Utilidades ────────────────────────────────────────────────────────────
-    private void fila(JPanel p, GridBagConstraints g, int gridy,
-                      String lbl1, JComponent c1, String lbl2, JComponent c2) {
-        g.gridy = gridy; g.weightx = 0; g.gridwidth = 1; g.fill = GridBagConstraints.HORIZONTAL;
-        g.anchor = GridBagConstraints.WEST;
-        g.gridx = 0; p.add(lbl(lbl1), g);
-        g.gridx = 1; g.weightx = 1; p.add(c1, g);
-        g.gridx = 2; g.weightx = 0; p.add(lbl(lbl2), g);
-        g.gridx = 3; g.weightx = 0.5; p.add(c2, g);
+    private JPanel fila(JLabel l1, JComponent c1, JLabel l2, JComponent c2) {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        p.setOpaque(false);
+        p.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(l1); p.add(c1);
+        p.add(Box.createHorizontalStrut(10));
+        p.add(l2); p.add(c2);
+        return p;
     }
 
     private JLabel lbl(String texto) {
         JLabel l = new JLabel(texto);
-        l.setBorder(new EmptyBorder(0, 4, 0, 4));
+        l.setBorder(new EmptyBorder(0, 2, 0, 2));
         return l;
-    }
-
-    private GridBagConstraints gbc() {
-        GridBagConstraints g = new GridBagConstraints();
-        g.insets = new Insets(4, 4, 4, 4);
-        g.fill = GridBagConstraints.HORIZONTAL;
-        g.anchor = GridBagConstraints.WEST;
-        return g;
-    }
-
-    private JButton botonDinamico(String texto, Color bg, Color fg) {
-        JButton b = new JButton(texto);
-        b.setBackground(bg);
-        b.setForeground(fg);
-        b.setOpaque(true);
-        b.setContentAreaFilled(false);
-        b.setOpaque(true);
-        b.putClientProperty("baseColor", bg);
-        b.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                Color base = (Color) b.getClientProperty("baseColor");
-                b.setBackground(colorHover(base));
-            }
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                b.setBackground((Color) b.getClientProperty("baseColor"));
-            }
-        });
-        return b;
-    }
-
-    private JButton boton(String texto, Color bg, Color fg) {
-        JButton b = new JButton(texto);
-        b.setBackground(bg);
-        b.setForeground(fg);
-        b.setOpaque(true);
-        b.setContentAreaFilled(false);
-        b.setOpaque(true);
-        Color hover = colorHover(bg);
-        b.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent e) { b.setBackground(hover); }
-            public void mouseExited(java.awt.event.MouseEvent e)  { b.setBackground(bg); }
-        });
-        return b;
-    }
-
-    private Color colorHover(Color base) {
-        return new Color(
-            Math.min(255, base.getRed()   + 40),
-            Math.min(255, base.getGreen() + 40),
-            Math.min(255, base.getBlue()  + 40));
     }
 
     private void alerta(String msg) {

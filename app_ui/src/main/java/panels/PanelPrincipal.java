@@ -7,6 +7,8 @@ import model.Etiqueta;
 import model.LoteEtiquetas;
 import service.GeneradorEtiquetas;
 import util.Estilo;
+import util.FontLoader;
+import util.RoundBorder;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -37,73 +39,110 @@ public class PanelPrincipal extends JPanel {
 
     public PanelPrincipal(JFrame parentFrame) {
         this.parentFrame = parentFrame;
-        setLayout(new BorderLayout(0, 0));
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         construirUI();
         cargarLotes();
     }
 
-    private void construirUI() {
-        add(crearToolbar(), BorderLayout.NORTH);
+    // ── Construcción de UI ────────────────────────────────────────────────────
 
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                crearPanelLista(), crearPanelDetalle());
-        split.setDividerLocation(310);
-        split.setBorder(new EmptyBorder(4, 6, 4, 6));
-        add(split, BorderLayout.CENTER);
+    private void construirUI() {
+        JLabel lblApp = new JLabel("Etiquetas D'johanna");
+        lblApp.setForeground(Color.WHITE);
+        lblApp.setFont(FontLoader.cargarFont(Estilo.FONT_OPEN_SANS_SEMIBOLD, 20f));
+        lblApp.setBorder(new EmptyBorder(14, 12, 4, 12));
+        lblApp.setAlignmentX(Component.LEFT_ALIGNMENT);
+        add(lblApp);
+
+        add(crearPanelBotones());
+        add(Box.createVerticalStrut(4));
+        add(crearPanelContenido());
 
         lblEstado = new JLabel("Listo.");
-        lblEstado.setBorder(new EmptyBorder(3, 8, 3, 8));
-        add(lblEstado, BorderLayout.SOUTH);
+        lblEstado.setBorder(new EmptyBorder(4, 10, 4, 10));
+        lblEstado.setAlignmentX(Component.LEFT_ALIGNMENT);
+        add(lblEstado);
     }
 
-    // ── Toolbar ──────────────────────────────────────────────────────────────
-    private JToolBar crearToolbar() {
-        JToolBar tb = new JToolBar();
-        tb.setFloatable(false);
-        tb.setBorder(new EmptyBorder(6, 6, 6, 6));
+    // Fila de botones — FlowLayout (leaf: solo contiene botones)
+    private JPanel crearPanelBotones() {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        p.setOpaque(false);
+        p.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        BotonCustom btnNuevo = new BotonCustom("+ Nuevo Lote");
-        btnNuevo.addActionListener(e -> abrirFormulario());
-
-        BotonCustom btnEditar = new BotonCustom("Editar Lote");
-        btnEditar.addActionListener(e -> editarLote());
-
+        BotonCustom btnNuevo   = new BotonCustom("+ Nuevo Lote");
+        BotonCustom btnEditar  = new BotonCustom("Editar Lote");
         BotonCustom btnGenerar = new BotonCustom("Generar Word");
-        btnGenerar.addActionListener(e -> generarWord());
-
         BotonCustom btnEliminar = new BotonCustom("Eliminar Lote");
+
+        btnNuevo.addActionListener(e -> abrirFormulario());
+        btnEditar.addActionListener(e -> editarLote());
+        btnGenerar.addActionListener(e -> generarWord());
         btnEliminar.addActionListener(e -> eliminarLote());
 
-        tb.add(btnNuevo);
-        tb.addSeparator(new Dimension(12, 0));
-        tb.add(btnEditar);
-        tb.addSeparator(new Dimension(12, 0));
-        tb.add(btnGenerar);
-        tb.addSeparator(new Dimension(12, 0));
-        tb.add(btnEliminar);
-        return tb;
+        p.add(btnNuevo);
+        p.add(btnEditar);
+        p.add(btnGenerar);
+        p.add(btnEliminar);
+        return p;
     }
 
-    // ── Panel izquierdo: lista de lotes ──────────────────────────────────────
-    private JPanel crearPanelLista() {
-        JPanel p = new JPanel(new BorderLayout());
-        p.setBorder(new EmptyBorder(4, 4, 4, 4));
+    // Fila de contenido — X_AXIS (contenedor: agrupa panelLotes + panelTabla)
+    private JPanel crearPanelContenido() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.X_AXIS));
+        p.setOpaque(false);
+        p.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.setBorder(new EmptyBorder(0, 8, 6, 8));
+
+        p.add(crearPanelLotes());
+        p.add(Box.createHorizontalStrut(10));
+        p.add(crearPanelTabla());
+        return p;
+    }
+
+    // Panel lotes — Y_AXIS (contenedor: label + scroll)
+    private JPanel crearPanelLotes() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setOpaque(false);
+        p.setAlignmentY(Component.TOP_ALIGNMENT);
+        p.setBorder(new RoundBorder(12, new Color(255, 255, 255, 45)));
+
+        JLabel lbl = new JLabel("Lotes");
+        lbl.setForeground(Color.WHITE);
+        lbl.setFont(FontLoader.cargarFont(Estilo.FONT_OPEN_SANS_SEMIBOLD, 15f));
+        lbl.setBorder(new EmptyBorder(0, 2, 6, 2));
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(lbl);
 
         modeloLista = new DefaultListModel<>();
-        listaLotes = new JList<>(modeloLista);
+        listaLotes  = new JList<>(modeloLista);
         listaLotes.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         listaLotes.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) cargarDetalleLote();
         });
 
-        p.add(new JScrollPane(listaLotes), BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(listaLotes);
+        scroll.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(scroll);
         return p;
     }
 
-    // ── Panel derecho: detalle de etiquetas ──────────────────────────────────
-    private JPanel crearPanelDetalle() {
-        JPanel p = new JPanel(new BorderLayout());
-        p.setBorder(new EmptyBorder(4, 4, 4, 4));
+    // Panel tabla — Y_AXIS (contenedor: solo scroll con tabla)
+    private JPanel crearPanelTabla() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setOpaque(false);
+        p.setAlignmentY(Component.TOP_ALIGNMENT);
+        p.setBorder(new RoundBorder(12, new Color(255, 255, 255, 45)));
+
+        JLabel lbl = new JLabel("Registros");
+        lbl.setForeground(Color.WHITE);
+        lbl.setFont(FontLoader.cargarFont(Estilo.FONT_OPEN_SANS_SEMIBOLD, 15f));
+        lbl.setBorder(new EmptyBorder(0, 2, 6, 2));
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(lbl);
 
         String[] cols = {"ID", "Nombre formateado", "Prenda", "Talla"};
         modeloTabla = new DefaultTableModel(cols, 0) {
@@ -111,10 +150,22 @@ public class PanelPrincipal extends JPanel {
         };
         JTable tabla = new JTable(modeloTabla);
         tabla.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        tabla.setRowHeight(32);
         tabla.getTableHeader().setReorderingAllowed(false);
         tabla.getTableHeader().setDefaultRenderer(cabeceraRenderer());
+        tabla.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable t, Object v, boolean sel, boolean focus, int row, int col) {
+                super.getTableCellRendererComponent(t, v, sel, focus, row, col);
+                setBorder(new EmptyBorder(0, 10, 0, 10));
+                return this;
+            }
+        });
 
-        p.add(new JScrollPane(tabla), BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(tabla);
+        scroll.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(scroll);
         return p;
     }
 
@@ -182,16 +233,16 @@ public class PanelPrincipal extends JPanel {
             }
         }
 
-        JFileChooser fc = new JFileChooser();
         String nombreSugerido = lote.getNombre().replaceAll("[^a-zA-Z0-9_\\-]", "_") + ".docx";
-        fc.setSelectedFile(new File(System.getProperty("user.home"), nombreSugerido));
-        fc.setDialogTitle("Guardar documento de etiquetas");
-        fc.addChoosableFileFilter(
-            new javax.swing.filechooser.FileNameExtensionFilter("Documento Word (*.docx)", "docx"));
+        java.awt.FileDialog fd = new java.awt.FileDialog(parentFrame, "Guardar documento de etiquetas", java.awt.FileDialog.SAVE);
+        fd.setDirectory(System.getProperty("user.home"));
+        fd.setFile(nombreSugerido);
+        fd.setFilenameFilter((dir, name) -> name.toLowerCase().endsWith(".docx"));
+        fd.setVisible(true);
 
-        if (fc.showSaveDialog(parentFrame) != JFileChooser.APPROVE_OPTION) return;
+        if (fd.getFile() == null) return;
 
-        File destino = fc.getSelectedFile();
+        File destino = new File(fd.getDirectory(), fd.getFile());
         if (!destino.getName().toLowerCase().endsWith(".docx")) {
             destino = new File(destino.getAbsolutePath() + ".docx");
         }

@@ -40,8 +40,6 @@ public class Estilo {
         // Contenedores
         UIManager.put("Panel.background",              bg);
         UIManager.put("Panel.foreground",              fg);
-        UIManager.put("ToolBar.background",            bg);
-        UIManager.put("ToolBar.foreground",            fg);
         UIManager.put("SplitPane.background",          bg);
         UIManager.put("ScrollPane.background",         bg);
         UIManager.put("Viewport.background",           bg);
@@ -82,9 +80,6 @@ public class Estilo {
         UIManager.put("Table.selectionForeground",     fg);
         UIManager.put("TableHeader.background",        bg);
         UIManager.put("TableHeader.foreground",        fg);
-
-        // TitledBorder
-        UIManager.put("TitledBorder.titleColor",       fg);
 
         // OptionPane / diálogos
         UIManager.put("OptionPane.background",         bg);
